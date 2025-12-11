@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Rifas e Capas</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 8mm; /* Margens da página mantidas em 8mm */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .no-print {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .no-print h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea, button {
+            display: block;
+            width: calc(100% - 22px);
+            padding: 11px;
+            font-size: 1rem;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            margin-bottom: 10px;
+            max-width: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap; /* Permite que os botões quebrem linha em telas menores */
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 1.05rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: bold;
+            width: auto;
+            min-width: 150px; /* Garante um tamanho mínimo para os botões */
+            margin-bottom: 10px; /* Espaçamento entre botões em linhas quebradas */
+        }
+
+        /* Estilos dos botões de ação */
+        button.print-button {
+            background: #28a745;
+            color: white;
+        }
+
+        button.print-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        button.clear-button {
+            background: #dc3545;
+            color: white;
+        }
+
+        button.clear-button:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Estilos para os botões de navegação */
+        button.nav-button {
+            background: #007bff;
+            color: white;
+        }
+
+        button.nav-button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        button.back-button {
+            background: #6c757d; /* Cor cinza para o botão voltar */
+            color: white;
+        }
+
+        button.back-button:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* ----- Seções do Gerador (Rifa e Capa) ----- */
+        #rifaSection, #capaSection {
+            display: none; /* Inicialmente ocultas */
+        }
+
+        /* Exibe a seção ativa */
+        body.show-rifa #rifaSection,
+        body.show-capa #capaSection {
+            display: block;
+        }
+
+        /* Esconde a área de seleção inicial quando uma seção é ativa */
+        body.show-rifa #initialSelection,
+        body.show-capa #initialSelection {
+            display: none;
+        }
+
+        /* ------------------------------------- */
+        /* Estilos para as Rifas Geradas (do rifa.html original) */
+        .rifa-page-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            page-break-after: always;
+            height: 281mm;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .rifa {
+            display: flex;
+            border: 1px solid #a0a0a0;
+            width: 100%;
+            height: 67.5mm;
+            min-height: 67.5mm;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            overflow: hidden;
+            margin-bottom: 3mm;
+            flex-shrink: 0;
+        }
+
+        .rifa:last-child {
+            margin-bottom: 0;
+        }
+
+        .rifa-left {
+            width: 30%;
+            border-right: 1px dotted #000;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            background: #f8f8f8;
+            box-sizing: border-box;
+        }
+
+        .rifa-left .info-line {
+            margin-bottom: 3px;
+        }
+
+        .rifa-left .linha {
+            border-bottom: 1px solid #bbb;
+            margin-top: 2px;
+            width: 100%;
+        }
+
+        .rifa-left .valor {
+            margin-top: auto;
+            background: #e9ecef;
+            padding: 3px 5px;
+            display: inline-block;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-align: center;
+            align-self: flex-start;
+            color: #007bff;
+        }
+
+        .rifa-right {
+            width: 70%;
+            padding: 6px;
+            font-size: 0.75rem;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .rifa-right .numero-talao {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #007bff;
+            z-index: 10;
+        }
+
+        .rifa-right h3 {
+            margin: 0 0 3px;
+            font-size: 1.05rem;
+            text-align: center;
+            color: #007bff;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2px;
+            padding-right: 40px;
+        }
+
+        .rifa-right p {
+            margin: 2px 0 3px;
+            line-height: 1.2;
+        }
+
+        .rifa-right strong {
+            margin-top: 3px;
+            margin-bottom: 1px;
+            display: block;
+            color: #555;
+        }
+
+        .rifa-right ul {
+            margin: 0 0 1px;
+            padding-left: 12px;
+            list-style-type: disc;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .rifa-right ul li {
+            margin-bottom: 0px;
+            line-height: 0.95;
+        }
+
+        .rifa-footer {
+            margin-top: 3px;
+            font-size: 0.7rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            padding-top: 3px;
+            border-top: 1px solid #eee;
+        }
+
+        .rifa-footer span {
+            flex-basis: auto;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+
+        .rifa-footer span:last-child {
+            margin-right: 0;
+        }
+
+        /* ------------------------------------- */
+        /* Estilos para as Capas Geradas (do capa.html original) */
+        .page-container { /* Renomeado de .page-container para .capa-page-container para evitar conflitos */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            page-break-after: always;
+            height: 281mm;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .page-container:last-of-type {
+            page-break-after: avoid;
+        }
+
+        .capa {
+            display: flex;
+            align-items: center;
+            border: 1px solid #007bff;
+            width: 100%;
+            height: 67.5mm;
+            min-height: 67.5mm;
+            background: #e6f3ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            overflow: hidden;
+            margin-bottom: 3mm;
+            flex-shrink: 0;
+            padding: 10px;
+            position: relative;
+        }
+
+        .capa-imagem {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            max-height: calc(100% - 10px);
+            max-width: 30%;
+            object-fit: contain;
+        }
+
+        .capa-conteudo {
+            flex-grow: 1;
+            margin-left: 35%;
+            text-align: center;
+        }
+
+        .capa h3 {
+            margin: 0 0 5px;
+            font-size: 1.5rem;
+            color: #0056b3;
+            text-transform: uppercase;
+        }
+
+        .capa p {
+            margin: 3px 0;
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .capa .data-sorteio {
+            font-size: 1.2rem;
+            color: #007bff;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* ------------------------------------- */
+        /* Rodapé da página (apenas em tela) */
+        #page-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        /* ----- Media Print Queries para esconder o que não deve ser impresso ----- */
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                margin: 0;
+            }
+            .no-print, #initialSelection, #page-footer {
+                display: none !important;
+            }
+
+            /* Esconde tudo, exceto a seção de rifas quando estiver imprimindo rifas */
+            body.printing-rifa #capaSection, body.printing-rifa #capasContainer {
+                display: none !important;
+            }
+            body.printing-rifa #rifaSection {
+                display: block !important;
+            }
+
+            /* Esconde tudo, exceto a seção de capas quando estiver imprimindo capas */
+            body.printing-capa #rifaSection, body.printing-capa #rifasContainer {
+                display: none !important;
+            }
+            body.printing-capa #capaSection {
+                display: block !important;
+            }
+
+            /* Estilos específicos para impressão de Rifas */
+            .rifa-page-container {
+                height: 281mm;
+                page-break-after: always;
+                border: none;
+            }
+            .rifa-page-container:last-of-type {
+                page-break-after: avoid;
+            }
+            .rifa {
+                width: 100%;
+                height: 67.5mm;
+                min-height: 67.5mm;
+                margin-bottom: 3mm;
+                border: 1px solid #000;
+            }
+            .rifa:last-child {
+                margin-bottom: 0;
+            }
+            .rifa-right ul {
+                overflow: hidden;
+                max-height: 55px;
+            }
+            .rifa-right ul li {
+                 margin-bottom: 0px;
+                 line-height: 0.95;
+            }
+
+            /* Estilos específicos para impressão de Capas */
+            .page-container {
+                height: 281mm;
+                page-break-after: always;
+                border: none;
+            }
+            .page-container:last-of-type {
+                page-break-after: avoid;
+            }
+            .capa {
+                width: 100%;
+                height: 67.5mm;
+                min-height: 67.5mm;
+                margin-bottom: 3mm;
+                border: 1px solid #000;
+                display: flex;
+                align-items: center;
+                position: relative;
+            }
+            .capa-imagem {
+                position: absolute;
+                left: 5px;
+                top: 50%;
+                transform: translateY(-50%);
+                max-height: calc(100% - 10px);
+                max-width: 30%;
+                object-fit: contain;
+            }
+            .capa-conteudo {
+                flex-grow: 1;
+                margin-left: 35%;
+                text-align: center;
+            }
+            .capa h3 {
+                font-size: 1.5rem;
+            }
+            .capa p, .capa .data-sorteio {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="initialSelection" class="no-print">
+    <h2 class="centered-header">Bem-vindo ao Gerador de Rifas e Capas</h2>
+    <div class="buttons-container">
+        <button type="button" class="nav-button" id="showRifaSection">Gerar Rifas</button>
+        <button type="button" class="nav-button" id="showCapaSection">Gerar Capas</button>
+    </div>
+</div>
+
+<div id="rifaSection">
+    <div class="no-print">
+        <h2 class="centered-header">Gerador de Rifas - 4 Talões por Página</h2>
+        <form id="formRifa">
+            <div class="form-group">
+                <label for="nomeRifa">Nome da Rifa:</label>
+                <input type="text" id="nomeRifa" placeholder="Ex: Rifa Beneficente do Colégio XYZ" required>
+            </div>
+
+            <div class="form-group">
+                <label for="descricaoRifa">Descrição da Rifa:</label>
+                <input type="text" id="descricaoRifa" placeholder="Ex: Ajude a construir um novo refeitório para o abrigo de animais" required>
+            </div>
+
+            <div class="form-group">
+                <label for="premiosRifa">Prêmios (1 por linha):</label>
+                <textarea id="premiosRifa" placeholder="Ex:
+1 Smart TV 50 polegadas
+1 Celular de última geração
+1 Voucher de R$ 500,00 em supermercado
+1 Cesta de café da manhã completa" rows="5"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="fontPremiacaoRifa">Tamanho da Fonte dos Prêmios (px):</label>
+                <input type="number" id="fontPremiacaoRifa" value="12" min="8" max="20">
+            </div>
+
+            <div class="form-group">
+                <label for="valorRifa">Valor da Rifa (Ex: 10,00):</label>
+                <input type="text" id="valorRifa" placeholder="Ex: 10,00" required>
+            </div>
+
+            <div class="form-group">
+                <label for="localRifa">Local do Sorteio:</label>
+                <input type="text" id="localRifa" placeholder="Ex: Salão de Eventos da Comunidade" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dataRifa">Data do Sorteio:</label>
+                <input type="date" id="dataRifa" required>
+            </div>
+
+            <div class="form-group">
+                <label for="horaRifa">Hora do Sorteio:</label>
+                <input type="time" id="horaRifa" required>
+            </div>
+
+            <div class="form-group">
+                <label for="quantidadeRifa">Quantidade de Rifas (1 a 2000):</label>
+                <input type="number" id="quantidadeRifa" value="10" min="1" max="2000" required>
+            </div>
+
+            <div class="buttons-container">
+                <button type="submit" class="print-button">Imprimir Rifas</button>
+                <button type="button" class="clear-button" id="clearRifaFields">Limpar Campos</button>
+                <button type="button" class="back-button" id="backToSelectionFromRifa">Voltar</button>
+            </div>
+        </form>
+    </div>
+    <div id="rifasContainer"></div>
+</div>
+
+<div id="capaSection">
+    <div class="no-print">
+        <h2 class="centered-header">Gerador de Capas de Rifas com Imagem</h2>
+        <form id="formCapa">
+            <div class="form-group">
+                <label for="nomeCapa">Nome da Rifa:</label>
+                <input type="text" id="nomeCapa" placeholder="Ex: Rifa Beneficente do Colégio XYZ" required>
+            </div>
+
+            <div class="form-group">
+                <label for="valorCapa">Valor da Rifa (Ex: 10,00):</label>
+                <input type="text" id="valorCapa" placeholder="Ex: 10,00" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dataCapa">Data do Sorteio:</label>
+                <input type="date" id="dataCapa" required>
+            </div>
+
+            <div class="form-group">
+                <label for="imagemCapa">Imagem da Capa (Lado Esquerdo):</label>
+                <input type="file" id="imagemCapa" accept="image/*">
+            </div>
+
+            <div class="buttons-container">
+                <button type="submit" class="print-button">Gerar e Imprimir Capas</button>
+                <button type="button" class="clear-button" id="clearCapaFields">Limpar Campos</button>
+                <button type="button" class="back-button" id="backToSelectionFromCapa">Voltar</button>
+            </div>
+        </form>
+    </div>
+    <div id="capasContainer"></div>
+</div>
+
+<div id="page-footer" class="no-print">
+    Desenvolvido por Jefferson Dantas - Departamento de Informática - Hospital Presidente Vargas
+</div>
+
+<script>
+    // Função auxiliar para formatar a data
+    function formatDate(dateString) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    // --- Lógica de Navegação entre Seções ---
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('showRifaSection').addEventListener('click', () => {
+            document.body.classList.add('show-rifa');
+            document.body.classList.remove('show-capa');
+            document.getElementById('rifasContainer').innerHTML = ''; // Limpa resultados anteriores
+            document.getElementById('capasContainer').innerHTML = '';
+            // Define a data atual para o campo de data da rifa ao entrar
+            document.getElementById('dataRifa').valueAsDate = new Date();
+        });
+
+        document.getElementById('showCapaSection').addEventListener('click', () => {
+            document.body.classList.add('show-capa');
+            document.body.classList.remove('show-rifa');
+            document.getElementById('rifasContainer').innerHTML = ''; // Limpa resultados anteriores
+            document.getElementById('capasContainer').innerHTML = '';
+            // Define a data atual para o campo de data da capa ao entrar
+            document.getElementById('dataCapa').valueAsDate = new Date();
+        });
+
+        document.getElementById('backToSelectionFromRifa').addEventListener('click', () => {
+            document.body.classList.remove('show-rifa');
+            document.getElementById('rifasContainer').innerHTML = '';
+        });
+
+        document.getElementById('backToSelectionFromCapa').addEventListener('click', () => {
+            document.body.classList.remove('show-capa');
+            document.getElementById('capasContainer').innerHTML = '';
+        });
+
+        // Define a data atual para os campos de data de ambos os formulários no carregamento inicial
+        document.getElementById('dataRifa').valueAsDate = new Date();
+        document.getElementById('dataCapa').valueAsDate = new Date();
+    });
+
+    // --- Lógica do Gerador de Rifas ---
+    document.getElementById('formRifa').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const nome = document.getElementById('nomeRifa').value;
+        const descricao = document.getElementById('descricaoRifa').value;
+        const premios = document.getElementById('premiosRifa').value.split('\n').map(p => p.trim()).filter(p => p !== '');
+        const fontPremiacao = document.getElementById('fontPremiacaoRifa').value + 'px';
+        const valor = document.getElementById('valorRifa').value;
+        const local = document.getElementById('localRifa').value;
+        const data = document.getElementById('dataRifa').value;
+        const hora = document.getElementById('horaRifa').value;
+        const quantidade = parseInt(document.getElementById('quantidadeRifa').value);
+
+        const container = document.getElementById('rifasContainer');
+        container.innerHTML = '';
+
+        let currentPageContainer;
+
+        for (let i = 0; i < quantidade; i++) {
+            if (i % 4 === 0) {
+                currentPageContainer = document.createElement('div');
+                currentPageContainer.className = 'rifa-page-container';
+                container.appendChild(currentPageContainer);
+            }
+
+            const rifa = document.createElement('div');
+            rifa.className = 'rifa';
+            rifa.innerHTML = `
+                <div class="rifa-left">
+                    <div class="info-line">
+                        <strong>Nome:</strong>
+                        <div class="linha"></div>
+                    </div>
+                    <div class="info-line">
+                        <strong>Celular:</strong>
+                        <div class="linha"></div>
+                    </div>
+                    <div class="valor">R$ ${valor} - nº ${i + 1}</div> </div>
+                <div class="rifa-right">
+                    <span class="numero-talao">Nº ${i + 1}</span> <h3>${nome}</h3>
+                    <p>${descricao}</p>
+                    <strong>PREMIAÇÃO:</strong>
+                    <ul style="font-size: ${fontPremiacao};">${premios.map(p => `<li>${p}</li>`).join('')}</ul>
+                    <div class="rifa-footer">
+                        <span>R$ ${valor}</span>
+                        <span>Sorteio: ${formatDate(data)} - ${hora}h</span>
+                        <span>Local: ${local}</span>
+                    </div>
+                </div>
+            `;
+            currentPageContainer.appendChild(rifa);
+        }
+
+        // Prepara para impressão, adicionando uma classe ao body
+        document.body.classList.add('printing-rifa');
+        window.print();
+        // Remove a classe após a impressão (ou quando o diálogo de impressão é fechado)
+        setTimeout(() => {
+            document.body.classList.remove('printing-rifa');
+        }, 100); // Pequeno atraso para garantir que a impressão seja acionada
+    });
+
+    document.getElementById('clearRifaFields').addEventListener('click', function() {
+        document.getElementById('nomeRifa').value = '';
+        document.getElementById('descricaoRifa').value = '';
+        document.getElementById('premiosRifa').value = '';
+        document.getElementById('fontPremiacaoRifa').value = '12';
+        document.getElementById('valorRifa').value = '';
+        document.getElementById('localRifa').value = '';
+        document.getElementById('dataRifa').valueAsDate = new Date();
+        document.getElementById('horaRifa').value = '';
+        document.getElementById('quantidadeRifa').value = '10';
+        document.getElementById('rifasContainer').innerHTML = '';
+    });
+
+    // --- Lógica do Gerador de Capas ---
+    document.getElementById('formCapa').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const nome = document.getElementById('nomeCapa').value;
+        const valor = document.getElementById('valorCapa').value;
+        const data = document.getElementById('dataCapa').value;
+        const imagemCapaInput = document.getElementById('imagemCapa');
+
+        const container = document.getElementById('capasContainer');
+        container.innerHTML = '';
+
+        let currentPageContainer = document.createElement('div');
+        currentPageContainer.className = 'page-container';
+        container.appendChild(currentPageContainer);
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            const imageDataUrl = event.target.result;
+            generateCovers(nome, valor, data, imageDataUrl);
+        };
+
+        if (imagemCapaInput.files && imagemCapaInput.files.length > 0) {
+            reader.readAsDataURL(imagemCapaInput.files[0]);
+        } else {
+            // Se nenhuma imagem for selecionada, gera sem imagem
+            generateCovers(nome, valor, data, '');
+        }
+
+        function generateCovers(nome, valor, data, imageDataUrl) {
+            for (let c = 0; c < 4; c++) {
+                const capa = document.createElement('div');
+                capa.className = 'capa';
+                capa.innerHTML = `
+                    ${imageDataUrl ? `<img src="${imageDataUrl}" alt="Imagem da Capa" class="capa-imagem">` : ''}
+                    <div class="capa-conteudo">
+                        <h3>${nome}</h3>
+                        <p>Valor: R$ ${valor}</p>
+                        <p class="data-sorteio">Sorteio: ${formatDate(data)}</p>
+                    </div>
+                `;
+                currentPageContainer.appendChild(capa);
+            }
+            // Prepara para impressão, adicionando uma classe ao body
+            document.body.classList.add('printing-capa');
+            window.print();
+            // Remove a classe após a impressão (ou quando o diálogo de impressão é fechado)
+            setTimeout(() => {
+                document.body.classList.remove('printing-capa');
+            }, 100);
+        }
+    });
+
+    document.getElementById('clearCapaFields').addEventListener('click', function() {
+        document.getElementById('nomeCapa').value = '';
+        document.getElementById('valorCapa').value = '';
+        document.getElementById('dataCapa').valueAsDate = new Date();
+        document.getElementById('imagemCapa').value = '';
+        document.getElementById('capasContainer').innerHTML = '';
+    });
+</script>
+
+</body>
+</html>

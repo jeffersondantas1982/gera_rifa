@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Rifas - 4 Talões por Página</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 8mm; /* Margens da página mantidas em 8mm */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .no-print {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .no-print h2 { /* Estilo para centralizar o cabeçalho */
+            text-align: center;
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea, button {
+            display: block;
+            width: calc(100% - 22px);
+            padding: 11px;
+            font-size: 1rem;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            margin-bottom: 10px;
+            max-width: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: space-between; /* Ajustado para espaçar os botões */
+            gap: 15px; /* Espaço entre os botões */
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1; /* Para que os botões tenham a mesma largura */
+            padding: 12px 20px;
+            font-size: 1.05rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: bold;
+            width: auto; /* Permite que o botão se ajuste ao conteúdo */
+        }
+
+        button.print-button {
+            background: #28a745; /* Cor verde para o botão de imprimir */
+            color: white;
+        }
+
+        button.print-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        button.clear-button {
+            background: #dc3545; /* Cor vermelha para o botão limpar */
+            color: white;
+        }
+
+        button.clear-button:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Estilos para as Rifas Geradas - Ajustados para 4 por página */
+        .rifa-page-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            page-break-after: always;
+            height: 281mm; /* Altura exata da área de conteúdo da A4 */
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .rifa {
+            display: flex;
+            border: 1px solid #a0a0a0;
+            width: 100%;
+            height: 67.5mm; /* Altura fixa para caber os 4 talões */
+            min-height: 67.5mm;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            overflow: hidden;
+            margin-bottom: 3mm; /* Espaço entre os talões mantido em 3mm */
+            flex-shrink: 0;
+        }
+
+        .rifa:last-child {
+            margin-bottom: 0;
+        }
+
+        .rifa-left {
+            width: 30%;
+            border-right: 1px dotted #000;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            background: #f8f8f8;
+            box-sizing: border-box;
+        }
+
+        .rifa-left .info-line {
+            margin-bottom: 3px;
+        }
+
+        .rifa-left .linha {
+            border-bottom: 1px solid #bbb;
+            margin-top: 2px;
+            width: 100%;
+        }
+
+        .rifa-left .valor {
+            margin-top: auto;
+            background: #e9ecef;
+            padding: 3px 5px;
+            display: inline-block;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-align: center;
+            align-self: flex-start;
+            color: #007bff;
+        }
+
+        .rifa-right {
+            width: 70%;
+            padding: 6px;
+            font-size: 0.75rem;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            position: relative; /* Adicionado para posicionar o número do talão */
+        }
+
+        .rifa-right .numero-talao { /* Novo estilo para o número do talão */
+            position: absolute;
+            top: 5px; /* Ajuste a posição vertical conforme necessário */
+            right: 8px; /* Ajuste a posição horizontal conforme necessário */
+            font-size: 0.9rem; /* Tamanho da fonte para o número */
+            font-weight: bold;
+            color: #007bff; /* Cor para o número */
+            z-index: 10; /* Garante que fique acima de outros elementos */
+        }
+
+
+        .rifa-right h3 {
+            margin: 0 0 3px;
+            font-size: 1.05rem;
+            text-align: center;
+            color: #007bff;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2px;
+            padding-right: 40px; /* Adicionado padding para não colidir com o número do talão */
+        }
+
+        .rifa-right p {
+            margin: 2px 0 3px;
+            line-height: 1.2;
+        }
+
+        .rifa-right strong {
+            margin-top: 3px;
+            margin-bottom: 1px;
+            display: block;
+            color: #555;
+        }
+
+        .rifa-right ul {
+            margin: 0 0 1px;
+            padding-left: 12px;
+            list-style-type: disc;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .rifa-right ul li {
+            margin-bottom: 0px;
+            line-height: 0.95;
+        }
+
+        .rifa-footer {
+            margin-top: 3px;
+            font-size: 0.7rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            padding-top: 3px;
+            border-top: 1px solid #eee;
+        }
+
+        .rifa-footer span {
+            flex-basis: auto;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+
+        .rifa-footer span:last-child {
+            margin-right: 0;
+        }
+
+        /* Rodapé da página (apenas em tela) */
+        #page-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 40px; /* Espaço para o rodapé do formulário */
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .rifa-page-container {
+                height: 281mm;
+                page-break-after: always;
+                border: none;
+            }
+            .rifa-page-container:last-of-type {
+                page-break-after: avoid;
+            }
+            .rifa {
+                width: 100%;
+                height: 67.5mm;
+                min-height: 67.5mm;
+                margin-bottom: 3mm;
+                border: 1px solid #000;
+            }
+            .rifa:last-child {
+                margin-bottom: 0;
+            }
+            .rifa-right ul {
+                overflow: hidden;
+                max-height: 55px;
+            }
+            .rifa-right ul li {
+                 margin-bottom: 0px;
+                 line-height: 0.95;
+            }
+            /* Oculta o rodapé na impressão */
+            #page-footer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h2 class="centered-header">Gerador de Rifas - 4 Talões por Página</h2>
+    <form id="formRifa">
+        <div class="form-group">
+            <label for="nome">Nome da Rifa:</label>
+            <input type="text" id="nome" placeholder="Ex: Rifa Beneficente do Colégio XYZ" required>
+        </div>
+
+        <div class="form-group">
+            <label for="descricao">Descrição da Rifa:</label>
+            <input type="text" id="descricao" placeholder="Ex: Ajude a construir um novo refeitório para o abrigo de animais" required>
+        </div>
+
+        <div class="form-group">
+            <label for="premios">Prêmios (1 por linha):</label>
+            <textarea id="premios" placeholder="Ex:
+1 Smart TV 50 polegadas
+1 Celular de última geração
+1 Voucher de R$ 500,00 em supermercado
+1 Cesta de café da manhã completa" rows="5"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="fontPremiacao">Tamanho da Fonte dos Prêmios (px):</label>
+            <input type="number" id="fontPremiacao" value="12" min="8" max="20">
+        </div>
+
+        <div class="form-group">
+            <label for="valor">Valor da Rifa (Ex: 10,00):</label>
+            <input type="text" id="valor" placeholder="Ex: 10,00" required>
+        </div>
+
+        <div class="form-group">
+            <label for="local">Local do Sorteio:</label>
+            <input type="text" id="local" placeholder="Ex: Salão de Eventos da Comunidade" required>
+        </div>
+
+        <div class="form-group">
+            <label for="data">Data do Sorteio:</label>
+            <input type="date" id="data" required>
+        </div>
+
+        <div class="form-group">
+            <label for="hora">Hora do Sorteio:</label>
+            <input type="time" id="hora" required>
+        </div>
+
+        <div class="form-group">
+            <label for="quantidade">Quantidade de Rifas (1 a 2000):</label>
+            <input type="number" id="quantidade" value="10" min="1" max="2000" required>
+        </div>
+
+        <div class="buttons-container">
+            <button type="submit" class="print-button">Imprimir Rifas</button>
+            <button type="button" class="clear-button" id="clearFields">Limpar Campos</button>
+        </div>
+    </form>
+</div>
+
+<div id="rifasContainer"></div>
+
+<div id="page-footer" class="no-print">
+    Desenvolvido por Jefferson Dantas - Departamento de Informática - Hospital Presidente Vargas
+</div>
+
+<script>
+    document.getElementById('formRifa').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const nome = document.getElementById('nome').value;
+        const descricao = document.getElementById('descricao').value;
+        const premios = document.getElementById('premios').value.split('\n').map(p => p.trim()).filter(p => p !== '');
+        const fontPremiacao = document.getElementById('fontPremiacao').value + 'px';
+        const valor = document.getElementById('valor').value;
+        const local = document.getElementById('local').value;
+        const data = document.getElementById('data').value;
+        const hora = document.getElementById('hora').value;
+        const quantidade = parseInt(document.getElementById('quantidade').value);
+
+        const container = document.getElementById('rifasContainer');
+        container.innerHTML = '';
+
+        let currentPageContainer;
+
+        for (let i = 0; i < quantidade; i++) {
+            if (i % 4 === 0) {
+                currentPageContainer = document.createElement('div');
+                currentPageContainer.className = 'rifa-page-container';
+                container.appendChild(currentPageContainer);
+            }
+
+            const rifa = document.createElement('div');
+            rifa.className = 'rifa';
+            rifa.innerHTML = `
+                <div class="rifa-left">
+                    <div class="info-line">
+                        <strong>Nome:</strong>
+                        <div class="linha"></div>
+                    </div>
+                    <div class="info-line">
+                        <strong>Celular:</strong>
+                        <div class="linha"></div>
+                    </div>
+                    <div class="valor">R$ ${valor} - nº ${i + 1}</div> </div>
+                <div class="rifa-right">
+                    <span class="numero-talao">Nº ${i + 1}</span> <h3>${nome}</h3>
+                    <p>${descricao}</p>
+                    <strong>PREMIAÇÃO:</strong>
+                    <ul style="font-size: ${fontPremiacao};">${premios.map(p => `<li>${p}</li>`).join('')}</ul>
+                    <div class="rifa-footer">
+                        <span>R$ ${valor}</span>
+                        <span>Sorteio: ${formatDate(data)} - ${hora}h</span>
+                        <span>Local: ${local}</span>
+                    </div>
+                </div>
+            `;
+            currentPageContainer.appendChild(rifa);
+        }
+
+        window.print();
+    });
+
+    document.getElementById('clearFields').addEventListener('click', function() {
+        document.getElementById('nome').value = '';
+        document.getElementById('descricao').value = '';
+        document.getElementById('premios').value = '';
+        document.getElementById('fontPremiacao').value = '12';
+        document.getElementById('valor').value = '';
+        document.getElementById('local').value = '';
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('data').value = `${year}-${month}-${day}`;
+        document.getElementById('hora').value = '';
+        document.getElementById('quantidade').value = '10';
+
+        document.getElementById('rifasContainer').innerHTML = '';
+    });
+
+
+    function formatDate(dateString) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('data').value = `${year}-${month}-${day}`;
+    });
+</script>
+
+</body>
+</html>

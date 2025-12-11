@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Capas de Rifas com Imagem</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .no-print {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .no-print h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea, button {
+            display: block;
+            width: calc(100% - 22px);
+            padding: 11px;
+            font-size: 1rem;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            margin-bottom: 10px;
+            max-width: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 1.05rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: bold;
+            width: auto;
+        }
+
+        button.print-button {
+            background: #28a745;
+            color: white;
+        }
+
+        button.print-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        button.clear-button {
+            background: #dc3545;
+            color: white;
+        }
+
+        button.clear-button:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Estilos para o container da página */
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            page-break-after: always;
+            height: 281mm;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .page-container:last-of-type {
+            page-break-after: avoid;
+        }
+
+        /* Estilos para a Capa da Rifa */
+        .capa {
+            display: flex;
+            align-items: center; /* Alinha verticalmente os itens (imagem e texto) */
+            border: 1px solid #007bff;
+            width: 100%;
+            height: 67.5mm;
+            min-height: 67.5mm;
+            background: #e6f3ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            overflow: hidden;
+            margin-bottom: 3mm;
+            flex-shrink: 0;
+            padding: 10px;
+            position: relative; /* Para posicionar a imagem */
+        }
+
+        .capa-imagem {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            max-height: calc(100% - 10px);
+            max-width: 30%;
+            object-fit: contain;
+        }
+
+        .capa-conteudo {
+            flex-grow: 1; /* Permite que o conteúdo ocupe o espaço restante */
+            margin-left: 35%; /* Empurra o texto para a direita para não sobrepor a imagem */
+            text-align: center;
+        }
+
+        .capa h3 {
+            margin: 0 0 5px;
+            font-size: 1.5rem;
+            color: #0056b3;
+            text-transform: uppercase;
+        }
+
+        .capa p {
+            margin: 3px 0;
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .capa .data-sorteio {
+            font-size: 1.2rem;
+            color: #007bff;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Rodapé da página (apenas em tela) */
+        #page-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .page-container {
+                height: 281mm;
+                page-break-after: always;
+                border: none;
+            }
+            .page-container:last-of-type {
+                page-break-after: avoid;
+            }
+            .capa {
+                width: 100%;
+                height: 67.5mm;
+                min-height: 67.5mm;
+                margin-bottom: 3mm;
+                border: 1px solid #000;
+                display: flex;
+                align-items: center;
+                position: relative;
+            }
+            .capa-imagem {
+                position: absolute;
+                left: 5px;
+                top: 50%;
+                transform: translateY(-50%);
+                max-height: calc(100% - 10px);
+                max-width: 30%;
+                object-fit: contain;
+            }
+            .capa-conteudo {
+                flex-grow: 1;
+                margin-left: 35%;
+                text-align: center;
+            }
+            /* Oculta o rodapé na impressão */
+            #page-footer {
+                display: none;
+            }
+            .capa h3 {
+                font-size: 1.5rem;
+            }
+            .capa p, .capa .data-sorteio {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h2 class="centered-header">Gerador de Capas de Rifas com Imagem</h2>
+    <form id="formCapa">
+        <div class="form-group">
+            <label for="nome">Nome da Rifa:</label>
+            <input type="text" id="nome" placeholder="Ex: Rifa Beneficente do Colégio XYZ" required>
+        </div>
+
+        <div class="form-group">
+            <label for="valor">Valor da Rifa (Ex: 10,00):</label>
+            <input type="text" id="valor" placeholder="Ex: 10,00" required>
+        </div>
+
+        <div class="form-group">
+            <label for="data">Data do Sorteio:</label>
+            <input type="date" id="data" required>
+        </div>
+
+        <div class="form-group">
+            <label for="imagemCapa">Imagem da Capa (Lado Esquerdo):</label>
+            <input type="file" id="imagemCapa" accept="image/*">
+        </div>
+
+        <div class="buttons-container">
+            <button type="submit" class="print-button">Gerar e Imprimir Capas</button>
+            <button type="button" class="clear-button" id="clearFields">Limpar Campos</button>
+        </div>
+    </form>
+</div>
+
+<div id="capasContainer"></div>
+
+<div id="page-footer" class="no-print">
+    Desenvolvido por Jefferson Dantas - Departamento de Informática - Hospital Presidente Vargas
+</div>
+
+<script>
+    document.getElementById('formCapa').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const nome = document.getElementById('nome').value;
+        const valor = document.getElementById('valor').value;
+        const data = document.getElementById('data').value;
+        const imagemCapaInput = document.getElementById('imagemCapa');
+
+        const container = document.getElementById('capasContainer');
+        container.innerHTML = '';
+
+        let currentPageContainer = document.createElement('div');
+        currentPageContainer.className = 'page-container';
+        container.appendChild(currentPageContainer);
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            const imageDataUrl = event.target.result;
+
+            // Gera sempre 4 capas para uma única folha A4
+            for (let c = 0; c < 4; c++) {
+                const capa = document.createElement('div');
+                capa.className = 'capa';
+                capa.innerHTML = `
+                    <img src="${imageDataUrl}" alt="Imagem da Capa" class="capa-imagem">
+                    <div class="capa-conteudo">
+                        <h3>${nome}</h3>
+                        <p>Valor: R$ ${valor}</p>
+                        <p class="data-sorteio">Sorteio: ${formatDate(data)}</p>
+                    </div>
+                `;
+                currentPageContainer.appendChild(capa);
+            }
+
+            window.print();
+        };
+
+        if (imagemCapaInput.files && imagemCapaInput.files.length > 0) {
+            reader.readAsDataURL(imagemCapaInput.files [0]);
+        } else {
+            // Se nenhuma imagem for selecionada, continua sem a imagem
+            for (let c = 0; c < 4; c++) {
+                const capa = document.createElement('div');
+                capa.className = 'capa';
+                capa.innerHTML = `
+                    <div class="capa-conteudo">
+                        <h3>${nome}</h3>
+                        <p>Valor: R$ ${valor}</p>
+                        <p class="data-sorteio">Sorteio: ${formatDate(data)}</p>
+                    </div>
+                `;
+                currentPageContainer.appendChild(capa);
+            }
+            window.print();
+        }
+    });
+
+    document.getElementById('clearFields').addEventListener('click', function() {
+        document.getElementById('nome').value = '';
+        document.getElementById('valor').value = '';
+        document.getElementById('data').valueAsDate = new Date();
+        document.getElementById('imagemCapa').value = '';
+        document.getElementById('capasContainer').innerHTML = '';
+    });
+
+    function formatDate(dateString) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('data').valueAsDate = new Date();
+    });
+</script>
+
+</body>
+</html>
